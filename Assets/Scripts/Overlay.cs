@@ -9,6 +9,17 @@ using System.Numerics;
 public class Overlay : MonoBehaviour
 {
     private ulong overlayHandle = OpenVR.k_ulOverlayHandleInvalid;
+
+    // wrist overlay positioning
+   [Range(0, 0.5f)] public float size = 0.5f;
+   [Range(-0.2f, 0.2f)] public float x;
+   [Range(-0.2f, 0.2f)] public float y;
+   [Range(-0.2f, 0.2f)] public float z;
+   [Range(0, 360)] public int rotationX;
+   [Range(0, 360)] public int rotationY;
+   [Range(0, 360)] public int rotationZ;
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -18,20 +29,18 @@ public class Overlay : MonoBehaviour
         overlayHandle = CreateOverlay("PhoneTrackVROverlayKey", "PhoneTrackVR");
 
         // draw sample image
-        var filePath = Application.streamingAssetsPath + "/vrchat.png";
-        var error = OpenVR.Overlay.SetOverlayFromFile(overlayHandle, filePath);
-        if (error != EVROverlayError.None)        {
-            throw new Exception("Failed to set overlay image: " + error);
+        var filePath = Application.streamingAssetsPath + "/test.jpg";
+        SetOverlayFromFile(overlayHandle, filePath);
+
+        SetOverlaySize(overlayHandle, size);
+
+        var position = new UnityEngine.Vector3(x, y, z);
+        var rotation = UnityEngine.Quaternion.Euler(rotationX, rotationY, rotationZ);
+        var leftControllerIndex = OpenVR.System.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.LeftHand);
+        if (leftControllerIndex != OpenVR.k_unTrackedDeviceIndexInvalid)
+        {
+            SetOverlayTransformRelative(overlayHandle, leftControllerIndex, position, rotation);
         }
-
-
-        //SetOverlayFromFile(overlayHandle, filePath);
-
-        //SetOverlaySize(overlayHandle, 0.5f);
-
-        //var position = new  UnityEngine.Vector3(0, 2, 3);
-        //var rotation = UnityEngine.Quaternion.Euler(0, 0, 45);
-        //SetOverlayTransformAbsolute(overlayHandle, position, rotation);
 
         ShowOverlay(overlayHandle);
 
@@ -45,7 +54,15 @@ public class Overlay : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        SetOverlaySize(overlayHandle, size);
+
+        var position = new UnityEngine.Vector3(x, y, z);
+        var rotation = UnityEngine.Quaternion.Euler(rotationX, rotationY, rotationZ);
+        var leftControllerIndex = OpenVR.System.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.LeftHand);
+        if (leftControllerIndex != OpenVR.k_unTrackedDeviceIndexInvalid)
+        {
+            SetOverlayTransformRelative(overlayHandle, leftControllerIndex, position, rotation);
+        }
     }
 
     private void OnDestroy()
@@ -115,14 +132,25 @@ public class Overlay : MonoBehaviour
         }
     }
 
-    // private void SetOverlayTransformAbsolute(ulong handle, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation)
-    // {
-    //     var rigidTransform = new SteamVR_Utils.RigidTransform(position, rotation);
-    //     var matrix = rigidTransform.ToHmdMatrix34();
-    //     var error = OpenVR.Overlay.SetOverlayTransformAbsolute(handle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref matrix);
-    //     if (error != EVROverlayError.None)
-    //     {
-    //         throw new Exception("Failed to set overlay transform: " + error.ToString());
-    //     }
-    // }
+    private void SetOverlayTransformAbsolute(ulong handle, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation)
+    {
+        var rigidTransform = new SteamVR_Utils.RigidTransform(position, rotation);
+        var matrix = rigidTransform.ToHmdMatrix34();
+        var error = OpenVR.Overlay.SetOverlayTransformAbsolute(handle, ETrackingUniverseOrigin.TrackingUniverseStanding, ref matrix);
+        if (error != EVROverlayError.None)
+        {
+            throw new Exception("Failed to set overlay transform: " + error.ToString());
+        }
+    }
+
+    private void SetOverlayTransformRelative(ulong handle, uint deviceIndex, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation)
+    {
+        var rigidTransform = new SteamVR_Utils.RigidTransform(position, rotation);
+        var matrix = rigidTransform.ToHmdMatrix34();
+        var error = OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(handle, deviceIndex, ref matrix);
+        if (error != EVROverlayError.None)
+        {
+            throw new Exception("Failed to set overlay transform: " + error.ToString());
+        }
+    }
 }
